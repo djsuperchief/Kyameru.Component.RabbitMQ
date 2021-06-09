@@ -13,12 +13,14 @@ namespace Kyameru.Component.RabbitMQ.MessageBus
     /// documentation. The choice should be there BUT advice on proper use should
     /// be thre.
     /// </remarks>
-    public class PublishClient
+    public class PublishClient : IDisposable
     {
         private readonly IConnection rabbitMQConnection;
         private readonly IModel rabbitMQModel;
         private readonly string rabbitMQExchange;
         private readonly string appId;
+
+        private bool disposed = false;
 
         public PublishClient(
             string queue,
@@ -42,6 +44,30 @@ namespace Kyameru.Component.RabbitMQ.MessageBus
             this.rabbitMQModel = this.rabbitMQConnection.CreateModel();
             this.rabbitMQExchange = exchange;
             this.appId = appId;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        public virtual void Dispose(bool disposing)
+        {
+            if(this.disposed)
+            {
+                return;
+            }
+
+            if(disposing)
+            {
+                this.rabbitMQModel.Dispose();
+                if(this.rabbitMQConnection != null)
+                {
+                    this.rabbitMQConnection.Close();
+                    this.rabbitMQConnection.Dispose();
+                }
+            }
         }
 
         public void Publish(string routingKey, Models.Message message)
